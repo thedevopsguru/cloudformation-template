@@ -1,0 +1,85 @@
+  AWSTemplateFormatVersion: "2010-09-09"
+  Description: "Creates an EC2 auto-scaling group"   
+  Parameters:
+    AsgName:
+      Description: "Cluster Name"
+      Type: "String"
+      Default: "MyASG"
+    Vpc:
+      Description: "The VPC ID"
+      Type: AWS::EC2::VPC::Id
+      Default: vpc-6a3b4202
+    Subnets:
+      Description: "The list of subnets for auto-scaling group"
+      Type: "List<AWS::EC2::Subnet::Id>"
+      Default: "subnet-31701f59"
+    KeyName:
+      Description: "Name of the Key"
+      Type: AWS::EC2::KeyPair::KeyName
+      Default: testkey
+    Type:
+      Description: "The instance type"
+      Type: "String"
+      Default: "t2.micro"
+    ImageId:
+      Description: "The EC2 auto-scaling group image ami"
+      Type: "AWS::EC2::Image::Id"
+      Default: "ami-0c657f40d178af05c"
+    Port:
+      Description: "Port to open"
+      Type: "Number"
+      Default: 9000
+    Desired:
+      Description: "Number of instances to launch in your auto-scaling group"
+      Type: "Number"
+      Default: 1
+    Min:
+      Description: "Minimum number of instances that can be launched"
+      Type: "Number"
+      Default: 1
+    Max:
+      Description: "Maximum number of instances that can be launched"
+      Type: "Number"
+      Default: 2
+
+  Resources:
+    InstanceSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: !Sub "Allow port ${Port} to host"
+        VpcId: !Ref "Vpc"
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref "Port"
+          ToPort: !Ref "Port"
+          CidrIp: 0.0.0.0/0
+    AutoScalingGroup:
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:    
+        AutoScalingGroupName: !Ref "AsgName"
+        VPCZoneIdentifier: !Ref "Subnets" 
+        DesiredCapacity: !Ref "Desired"
+        LaunchConfigurationName: !Ref "LaunchConfig" 
+        MaxSize: !Ref "Max"
+        MinSize: !Ref "Min"
+        Tags:
+          -
+            Key: Name
+            Value: "Ec2ASG"
+            PropagateAtLaunch: true
+    LaunchConfig: 
+      Type: AWS::AutoScaling::LaunchConfiguration
+      Properties: 
+        KeyName: !Ref "KeyName"
+        ImageId: !Ref "ImageId"
+        SecurityGroups: 
+          - Ref: "InstanceSecurityGroup" 
+        InstanceType: !Ref "Type"
+        LaunchConfigurationName: MylaunchConfig
+  Outputs: 
+    AutoscalingGroup: 
+      Description: "The newly created ASG"
+      Value: !Ref "AutoScalingGroup"
+    LaunchConfig:
+      Description: "The newly created launch config"
+      Value: !Ref "LaunchConfig"
